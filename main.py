@@ -3,7 +3,7 @@ import sqlite3
 import asyncio
 from datetime import datetime
 import yfinance as yf
-from telegram import Update, ReplyKeyboardMarkup
+from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -13,16 +13,17 @@ logging.basicConfig(
     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Токен Telegram-бота (получите новый от @BotFather, если не работает)
+# Токен Telegram-бота
 TOKEN = "7654401250:AAG2U97kJZRYos7za6bS2QZyN3Y-6KFpJnE"
 
 # Путь к базе данных SQLite
 DB_PATH = "investments.db"
 
 # Кнопки
-REPLY_KEYBOARD = ReplyKeyboardMarkup(
-    [["📊 Портфель", "➕ Добавить"], ["➖ Удалить", "⚠️ Алерты"]],
-    resize_keyboard=True)
+REPLY_KEYBOARD = [
+    ["📊 Портфель", "➕ Добавить"],
+    ["➖ Удалить", "⚠️ Алерты"]
+]
 
 # Создание таблицы в базе данных
 def init_db():
@@ -82,7 +83,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"Получена команда /start от chat_id: {update.message.chat_id}")
     await update.message.reply_text(
         "Бот запущен! Используйте кнопки или команды: /portfolio, /add_ticker, /remove_ticker, /list_tickers, /set_alert",
-        reply_markup=REPLY_KEYBOARD)
+        reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
 
 # Команда /portfolio или /list_tickers
 async def portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -101,19 +102,19 @@ async def portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 message += f"{ticker:<6} | {price_min or 'не задан':<10} | {price_max or 'не задан':<10}\n"
             await update.message.reply_text(f"<pre>{message}</pre>", parse_mode="HTML")
         else:
-            await update.message.reply_text("📊 Ваш портфель пуст.", reply_markup=REPLY_KEYBOARD)
+            await update.message.reply_text("📊 Ваш портфель пуст.", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
     except sqlite3.OperationalError as e:
         logger.error(f"Ошибка базы данных при получении портфеля: {e}")
-        await update.message.reply_text(f"Ошибка базы данных: {e}", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text(f"Ошибка базы данных: {e}", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
     except Exception as e:
         logger.error(f"Ошибка при получении портфеля: {e}")
-        await update.message.reply_text(f"Ошибка: {e}", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text(f"Ошибка: {e}", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
 
 # Команда /add_ticker
 async def add_ticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"Получена команда /add_ticker от chat_id: {update.message.chat_id}")
     if not context.args:
-        await update.message.reply_text("Укажите тикer, например: /add_ticker TSLA", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text("Укажите тикer, например: /add_ticker TSLA", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
         return
     ticker = context.args[0].upper()
     try:
@@ -123,19 +124,19 @@ async def add_ticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute("INSERT INTO investments (asset) VALUES (?)", (ticker,))
         conn.commit()
         conn.close()
-        await update.message.reply_text(f"➕ Тикer {ticker} добавлен в портфель. Цена: {price:.2f}", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text(f"➕ Тикer {ticker} добавлен в портфель. Цена: {price:.2f}", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
     except sqlite3.OperationalError as e:
         logger.error(f"Ошибка базы данных при добавлении тикера {ticker}: {e}")
-        await update.message.reply_text(f"Ошибка базы данных: {e}", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text(f"Ошибка базы данных: {e}", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
     except Exception as e:
         logger.error(f"Ошибка при добавлении тикера {ticker}: {e}")
-        await update.message.reply_text(f"Ошибка при добавлении {ticker}: {e}", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text(f"Ошибка при добавлении {ticker}: {e}", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
 
 # Команда /remove_ticker
 async def remove_ticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"Получена команда /remove_ticker от chat_id: {update.message.chat_id}")
     if not context.args:
-        await update.message.reply_text("Укажите тикer, например: /remove_ticker TSLA", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text("Укажите тикer, например: /remove_ticker TSLA", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
         return
     ticker = context.args[0].upper()
     try:
@@ -144,22 +145,22 @@ async def remove_ticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute("DELETE FROM investments WHERE asset = ?", (ticker,))
         conn.commit()
         if cursor.rowcount > 0:
-            await update.message.reply_text(f"➖ Тикer {ticker} удалён из портфеля.", reply_markup=REPLY_KEYBOARD)
+            await update.message.reply_text(f"➖ Тикer {ticker} удалён из портфеля.", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
         else:
-            await update.message.reply_text(f"Тикer {ticker} не найден в портфеле.", reply_markup=REPLY_KEYBOARD)
+            await update.message.reply_text(f"Тикer {ticker} не найден в портфеле.", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
         conn.close()
     except sqlite3.OperationalError as e:
         logger.error(f"Ошибка базы данных при удалении тикера {ticker}: {e}")
-        await update.message.reply_text(f"Ошибка базы данных: {e}", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text(f"Ошибка базы данных: {e}", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
     except Exception as e:
         logger.error(f"Ошибка при удалении тикера {ticker}: {e}")
-        await update.message.reply_text(f"Ошибка при удалении {ticker}: {e}", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text(f"Ошибка при удалении {ticker}: {e}", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
 
 # Команда /set_alert
 async def set_alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"Получена команда /set_alert от chat_id: {update.message.chat_id}")
     if len(context.args) != 3:
-        await update.message.reply_text("Укажите тикer, минимум и максимум, например: /set_alert TSLA 200 300", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text("Укажите тикer, минимум и максимум, например: /set_alert TSLA 200 300", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
         return
     ticker = context.args[0].upper()
     try:
@@ -170,18 +171,18 @@ async def set_alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute("UPDATE investments SET price_min = ?, price_max = ? WHERE asset = ?", (price_min, price_max, ticker))
         conn.commit()
         if cursor.rowcount > 0:
-            await update.message.reply_text(f"⚠️ Алерт для {ticker} установлен: мин {price_min}, макс {price_max}", reply_markup=REPLY_KEYBOARD)
+            await update.message.reply_text(f"⚠️ Алерт для {ticker} установлен: мин {price_min}, макс {price_max}", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
         else:
-            await update.message.reply_text(f"Тикer {ticker} не найден в портфеле.", reply_markup=REPLY_KEYBOARD)
+            await update.message.reply_text(f"Тикer {ticker} не найден в портфеле.", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
         conn.close()
     except ValueError:
-        await update.message.reply_text("Минимум и максимум должны быть числами, например: /set_alert TSLA 200 300", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text("Минимум и максимум должны быть числами, например: /set_alert TSLA 200 300", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
     except sqlite3.OperationalError as e:
         logger.error(f"Ошибка базы данных при установке алерта для {ticker}: {e}")
-        await update.message.reply_text(f"Ошибка базы данных: {e}", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text(f"Ошибка базы данных: {e}", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
     except Exception as e:
         logger.error(f"Ошибка при установке алерта для {ticker}: {e}")
-        await update.message.reply_text(f"Ошибка: {e}", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text(f"Ошибка: {e}", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
 
 # Обработка текстовых сообщений (кнопок)
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -190,13 +191,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text == "📊 Портфель":
         await portfolio(update, context)
     elif text == "➕ Добавить":
-        await update.message.reply_text("Введите тикer, например: /add_ticker TSLA", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text("Введите тикer, например: /add_ticker TSLA", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
     elif text == "➖ Удалить":
-        await update.message.reply_text("Укажите тикer, например: /remove_ticker TSLA", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text("Укажите тикer, например: /remove_ticker TSLA", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
     elif text == "⚠️ Алерты":
-        await update.message.reply_text("Установите алерт, например: /set_alert TSLA 200 300", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text("Установите алерт, например: /set_alert TSLA 200 300", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
     else:
-        await update.message.reply_text("Неизвестная команда. Используйте кнопки или команды: /portfolio, /add_ticker, /remove_ticker, /set_alert", reply_markup=REPLY_KEYBOARD)
+        await update.message.reply_text("Неизвестная команда. Используйте кнопки или команды: /portfolio, /add_ticker, /remove_ticker, /set_alert", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
 
 # Главная функция
 async def main():
@@ -223,7 +224,7 @@ async def main():
 
     # Запуск бота с polling
     logger.info("Запуск бота с polling...")
-    await application.run_polling()
+    await application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
     asyncio.run(main())
