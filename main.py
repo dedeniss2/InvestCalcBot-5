@@ -52,7 +52,7 @@ async def get_asset_price(ticker: str, attempt: int = 1, max_attempts: int = 3) 
         raise
 
 # Функция для проверки алертов
-async def check_alerts(bot):
+async def check_alerts(application):
     logger.info("Проверка алертов начата")
     try:
         conn = sqlite3.connect(DB_PATH, timeout=10)
@@ -70,10 +70,10 @@ async def check_alerts(bot):
                     message += f"\n⚠️ Цена ниже минимума ({price_min})!"
                 if price_max and price > price_max:
                     message += f"\n⚠️ Цена выше максимума ({price_max})!"
-                await bot.send_message(chat_id=784622780, text=message)
+                await application.bot.send_message(chat_id=784622780, text=message)
             except Exception as e:
                 logger.error(f"❌ Ошибка при проверке {ticker}: {e}")
-                await bot.send_message(chat_id=784622780, text=f"Ошибка для {ticker}: {e}")
+                await application.bot.send_message(chat_id=784622780, text=f"Ошибка для {ticker}: {e}")
     except Exception as e:
         logger.error(f"Ошибка в check_alerts: {e}")
 
@@ -200,30 +200,30 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Главная функция
 async def main():
-    global bot_app
-    bot_app = Application.builder().token(TOKEN).build()
+    # Создание приложения
+    application = Application.builder().token(TOKEN).build()
 
-    # Добавление команд
-    bot_app.add_handler(CommandHandler("start", start))
-    bot_app.add_handler(CommandHandler("portfolio", portfolio))
-    bot_app.add_handler(CommandHandler("list_tickers", portfolio))
-    bot_app.add_handler(CommandHandler("add_ticker", add_ticker))
-    bot_app.add_handler(CommandHandler("remove_ticker", remove_ticker))
-    bot_app.add_handler(CommandHandler("set_alert", set_alert))
-    bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    # Добавление обработчиков команд
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("portfolio", portfolio))
+    application.add_handler(CommandHandler("list_tickers", portfolio))
+    application.add_handler(CommandHandler("add_ticker", add_ticker))
+    application.add_handler(CommandHandler("remove_ticker", remove_ticker))
+    application.add_handler(CommandHandler("set_alert", set_alert))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     # Инициализация базы данных
     init_db()
 
     # Инициализация планировщика
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(check_alerts, "interval", hours=1, args=[bot_app.bot])
+    scheduler.add_job(check_alerts, "interval", hours=1, args=[application])
     scheduler.start()
     logger.info("Планировщик запущен")
 
     # Запуск бота с polling
     logger.info("Запуск бота с polling...")
-    await bot_app.run_polling()
+    await application.run_polling()
 
 if __name__ == "__main__":
     asyncio.run(main())
