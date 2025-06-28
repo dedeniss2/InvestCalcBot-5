@@ -190,4 +190,41 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"Получено сообщение '{text}' от chat_id: {update.message.chat_id}")
     if text == "📊 Портфель":
         await portfolio(update, context)
-    elif text == "
+    elif text == "➕ Добавить":
+        await update.message.reply_text("Введите тикer, например: /add_ticker TSLA", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
+    elif text == "➖ Удалить":
+        await update.message.reply_text("Укажите тикer, например: /remove_ticker TSLA", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
+    elif text == "⚠️ Алерты":
+        await update.message.reply_text("Установите алерт, например: /set_alert TSLA 200 300", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
+    else:
+        await update.message.reply_text("Неизвестная команда. Используйте кнопки или команды: /portfolio, /add_ticker, /remove_ticker, /set_alert", reply_markup=ReplyKeyboardMarkup(REPLY_KEYBOARD, resize_keyboard=True))
+
+# Главная функция
+def main():
+    # Создание приложения
+    application = Application.builder().token(TOKEN).build()
+
+    # Добавление обработчиков команд
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("portfolio", portfolio))
+    application.add_handler(CommandHandler("list_tickers", portfolio))
+    application.add_handler(CommandHandler("add_ticker", add_ticker))
+    application.add_handler(CommandHandler("remove_ticker", remove_ticker))
+    application.add_handler(CommandHandler("set_alert", set_alert))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    # Инициализация базы данных
+    init_db()
+
+    # Инициализация планировщика
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(check_alerts, "interval", hours=1, args=[application])
+    scheduler.start()
+    logger.info("Планировщик запущен")
+
+    # Запуск бота с polling
+    logger.info("Запуск бота с polling...")
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+if __name__ == "__main__":
+    main()
